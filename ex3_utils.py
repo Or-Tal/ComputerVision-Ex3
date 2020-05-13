@@ -1,5 +1,6 @@
 import numpy as np
-import cv2 as cv
+import cv2
+import matplotlib.pyplot as plt
 
 
 def normalize_coords(pts: np.ndarray):
@@ -44,15 +45,17 @@ def find_matrix_by_pt_matches(pts1: np.ndarray, pts2: np.ndarray, zero_eigen=Tru
         pts1, pts2 = pts1.T, pts2.T
 
     # build constraint matrix
-    A = np.concatenate([pts1[0, :] * pts2[0, :],
-                        pts1[1, :] * pts2[0, :],
-                        pts1[0, :],
-                        pts1[0, :] * pts2[1, :],
-                        pts1[1, :] * pts2[1, :],
-                        pts2[1, :],
-                        pts1[0, :],
-                        pts1[1, :],
-                        pts1[0, :]/pts1[0, :]])
+
+    A = np.asarray([pts1[:, 0] * pts2[:, 0],
+                        pts1[:, 1] * pts2[:, 0],
+                        pts1[:, 0],
+                        pts1[:, 0] * pts2[:, 1],
+                        pts1[:, 1] * pts2[:, 1],
+                        pts2[:, 1],
+                        pts1[:, 0],
+                        pts1[:, 1],
+                        pts1[:, 0] / pts1[:, 0]]).T
+    A = A.reshape(8, 9)
 
     # SVD -> take smallest eigenvector
     U, S, VT = np.linalg.svd(A)
