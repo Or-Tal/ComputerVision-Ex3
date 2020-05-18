@@ -103,7 +103,7 @@ def discard_outliers(kp1, kp2, matches, tol=None):
     :return: inlier pts for which x'^T @ F @ x <= tol
     """
     if tol is None:
-        tol = np.mean([m.distance for m in matches])
+        tol = 0.7 * np.mean([m.distance for m in matches])
     idxs = np.where(np.array([m.distance for m in matches]).flatten() <= tol)[0]
     if idxs.shape[0] < 8:
         return kp1, kp2, matches[:8]
@@ -111,3 +111,22 @@ def discard_outliers(kp1, kp2, matches, tol=None):
     for i in idxs:
         rel_matches.append(matches[i])
     return kp1, kp2, rel_matches
+
+
+def draw_lines(img: np.ndarray, lines, pts):
+    """
+    :param img: image on which we draw the matching epilines
+    :param lines: corresponding epilines
+    :param pts1: pts of img 1
+    :param pts2: pts of img 2
+    :return: img1<- with points and epilines
+    """
+    r,c = img.shape
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    for r, pt1 in zip(lines, pts):
+        color = tuple(np.random.randint(0,255,3).tolist())
+        x0,y0 = map(int, [0, -r[2]/r[1] ])
+        x1,y1 = map(int, [c, -(r[2]+r[0]*c)/r[1] ])
+        cv2.line(img, (x0, y0), (x1, y1), color, 1)
+        img = cv2.circle(img,tuple(pt1),5,color,-1)
+    return img

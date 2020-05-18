@@ -14,26 +14,28 @@ def find_pts_correspondences(img1: np.ndarray, img2: np.ndarray, show=False):
     # init detector
     orb = cv2.ORB_create()
 
-    # find the keypoints
-    kp1 = orb.detect(img1, None)
-    kp2 = orb.detect(img2, None)
-
-    # calculate descriptors
-    kp1, des1 = orb.compute(img1, kp1)
-    kp2, des2 = orb.compute(img2, kp2)
+    # # find the keypoints
+    # kp1 = orb.detect(img1, None)
+    # kp2 = orb.detect(img2, None)
+    #
+    # # calculate descriptors
+    # kp1, des1 = orb.compute(img1, kp1)
+    # kp2, des2 = orb.compute(img2, kp2)
+    kp1, des1 = orb.detectAndCompute(img1, None)
+    kp2, des2 = orb.detectAndCompute(img2, None)
 
     # create BFMatcher object
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
     # Match descriptors.
     matches = bf.match(des1, des2)
-    matches = sorted(matches, key=lambda x: x.distance)
 
     if show:
         # draw match lines
         res = cv2.drawMatches(img1, kp1, img2, kp2, matches, None, flags=2)
+        plt.figure(figsize=(15,10))
         plt.imshow(res)
-        plt.title("all matches found")
+        plt.title("all matches found", fontsize=20)
         plt.show()
 
     return kp1, kp2, matches
@@ -97,12 +99,12 @@ def find_fundamental_matrix(kp1, kp2, matches, show=False, filter_func=None):
     return F, kp1, kp2, matches
 
 
-def calc_fundamental_matrix(img_path1: str, img_path2: str, show=False):
+def main_func(img_path1: str, img_path2: str, show=False):
     """
     main function - estimate fundamental matrix from two images
     :param img_path1: path to img1 file
     :param img_path2: path to img2 file
-    :param show: boolean, True = display image
+    :param show: boolean, True = display image inliers found, print fundamental matrix
     :return: fundamental matrix
     """
     # load images
@@ -119,14 +121,70 @@ def calc_fundamental_matrix(img_path1: str, img_path2: str, show=False):
     if show:
         # draw match lines
         res = cv2.drawMatches(img1, kp1, img2, kp2, matches, None, flags=2)
+        plt.figure(figsize=(15,10))
         plt.imshow(res)
-        plt.title("filtered inliers found")
+        plt.title("filtered inliers found", fontsize=20)
         plt.show()
 
         # print the fundamental matrix, centroid,
         print("fundamental matrix:\n{}".format(F))
-    return F
+
+    draw_epilines(img1, img2, F, kp1, kp2, matches)
+    return
+
+
+def draw_epilines(im1: np.ndarray, im2: np.ndarray, F: np.ndarray, kp1, kp2, matches):
+    # get pt coordinates
+    pts = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
+    pts1, pts2 = pts[0], pts[1]  # assuming these coords are homogeneous with z = 1
+    pts1, pts2 = (pts1[:2, :].astype(int)).T, (pts2[:2, :].astype(int)).T
+    # find corresponding epilines
+    # lines1 = np.matmul(F.T, pts2).T
+    # lines2 = np.matmul(F, pts1).T
+    lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F).reshape(-1, 3)
+    lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F).reshape(-1, 3)
+
+    # draw lines on images
+
+    img1 = draw_lines(im1, lines1, pts1)
+    img2 = draw_lines(im2, lines2, pts2)
+
+    # plot
+    fig, axs = plt.subplots(2,1, figsize=(15, 10))
+    plt.suptitle("our result: epipolar lines", fontsize=20)
+    axs[0].imshow(img1)
+    axs[1].imshow(img2)
+    plt.show()
+
+    # -------------- compare to open-cv result --------------
+
+    # find matches
+    kp1, kp2, matches = find_pts_correspondences(img1, img2, show=False)
+    pts = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
+    pts1, pts2 = (pts[0, :2, :].astype(int)).T, (pts[1, :2, :].astype(int)).T  # assuming these coords are homogeneous with z = 1
+
+    # find fundamental matrix
+    F, mask = cv2.findFundamentalMat(pts1, pts2, method=cv2.FM_8POINT)
+
+    # We select only inlier points
+    pts1 = pts1[mask.ravel() == 1]
+    pts2 = pts2[mask.ravel() == 1]
+
+    # find corresponding epilines
+    lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F).reshape(-1, 3)
+    lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F).reshape(-1, 3)
+
+    # draw lines on images
+    img1 = draw_lines(im1, lines1, pts1)
+    img2 = draw_lines(im2, lines2, pts2)
+
+    # plot
+    fig, axs = plt.subplots(2, 1, figsize=(15, 10))
+    plt.suptitle("opencv result: epipolar lines", fontsize=20)
+    axs[0].imshow(img1)
+    axs[1].imshow(img2)
+    plt.show()
 
 
 if __name__ == "__main__":
-    calc_fundamental_matrix("./external/oxford1.jpg", "./external/oxford2.jpg", show=True)
+    main_func("./external/img1.jpeg", "./external/img2.jpeg", show=True)
