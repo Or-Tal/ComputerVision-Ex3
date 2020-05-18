@@ -2,6 +2,15 @@ from ex3_utils import *
 
 
 def find_pts_correspondences(img1: np.ndarray, img2: np.ndarray, show=False):
+    """
+    find matches between two grayscale images using ORB +
+    :param img1: np.ndarray representing img2
+    :param img2: np.ndarray representing img2
+    :param show: boolean, True = display image
+    :return: kp1: KeyPoint list relative to img 1
+             kp2: KeyPoint list relative to img 2
+             matches: DMatch list of these correspondences
+    """
     # init detector
     orb = cv2.ORB_create()
 
@@ -18,55 +27,80 @@ def find_pts_correspondences(img1: np.ndarray, img2: np.ndarray, show=False):
 
     # Match descriptors.
     matches = bf.match(des1, des2)
-
-    # TODO: think of better way to eliminate outliers
-    # eliminate outliers
-    matches = sorted(matches, key=lambda x: x.distance)[:8]
-    # TODO: maybe this?
-    # # Apply ratio test
-    # good = []
-    # for m, n in matches:
-    #     if m.distance < 0.75 * n.distance:
-    #         good.append((m, n))
-    # return good
+    matches = sorted(matches, key=lambda x: x.distance)
 
     if show:
         # draw match lines
         res = cv2.drawMatches(img1, kp1, img2, kp2, matches, None, flags=2)
         plt.imshow(res)
+        plt.title("all matches found")
         plt.show()
 
-    output = [[[], []], [[], []]]
-    for m in matches:
-        x1, y1 = kp1[m.queryIdx].pt
-        x2, y2 = kp2[m.trainIdx].pt
-        output[0][0].append(x1)
-        output[0][1].append(y1)
-        output[1][0].append(x2)
-        output[1][1].append(y2)
-    return output
+    return kp1, kp2, matches
 
 
-def find_fundamental_matrix(pt_correspondence: np.ndarray):
+def find_fundamental_matrix(kp1, kp2, matches, show=False, filter_func=None):
     """
-    :param pt_correspondence: 8 point correspondences in non-homogeneous coordinates
-    :return:
+    :param kp1: KeyPoint list relative to img 1
+    :param kp2: KeyPoint list relative to img 2
+    :param show: boolean flag -> show inlier pt correspondence
+    :param filter_func: outlier filtering function:
+                    func(Fundamental matrix, KeyPoint list 1, KeyPoint list 2, DMatch list)
+                    returns: KeyPoint list 1, KeyPoint list 2, DMatch list (of inliers)
+                    # note - DMatch list is at least of length 8
+    :param matches: DMatch list of these correspondences
+    :return: Fundamental matrix (3,3)
     """
-    assert pt_correspondence.shape == (2, 2, 8)
-    # normalize coordinates + add homogeneous coordinates
-    X1, T1 = normalize_coords(pt_correspondence[0])
-    X2, T2 = normalize_coords(pt_correspondence[1])
+    # retrieve pt_correspondence
+    pt_correspondence = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
 
-    # find matrix
-    # -- linear solution + constraint enforce
-    F_hat = find_matrix_by_pt_matches(X1, X2, zero_eigen=True)
+    # calc normalize matrix, get homogeneous coordinates
+    X1, T1 = get_norm_matrix(pt_correspondence[0])
+    X2, T2 = get_norm_matrix(pt_correspondence[1])
+
+    if filter_func is not None:
+        # find matrix
+        # comment out in case of different implementation of outlier filtering
+        # -- enforce shape (num_pts, 3)
+        if X1.shape[0] == 3:
+            X1, X2 = X1.T, X2.T
+
+        # -- gen F matrix
+        F = build_matrix_from_pts(X1, X2, T1, T2)
+
+        # -- remove outliers
+        F = np.matmul(T2.T, np.matmul(F, T1))
+        kp1, kp2, matches = filter_func(F, kp1, kp2, matches)
+        #
+    else:
+        # case where filtering by match score
+        # -- remove outliers
+        kp1, kp2, matches = discard_outliers(kp1, kp2, matches)
+
+    # -- re-gen pts
+    pt_correspondence = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
+    X1, X2 = pt_correspondence[0], pt_correspondence[1]
+    # ---- enforce shape (num_pts, 3)
+    if X1.shape[0] == 3:
+        X1, X2 = X1.T, X2.T
+
+    # -- re-gen F matrix
+    F = build_matrix_from_pts(X1, X2, T1, T2)
 
     # de-normalize
-    F = np.matmul(T2.T, np.matmul(F_hat, T1))
-    return F
+    F = np.matmul(T2.T, np.matmul(F, T1))
+
+    return F, kp1, kp2, matches
 
 
 def calc_fundamental_matrix(img_path1: str, img_path2: str, show=False):
+    """
+    main function - estimate fundamental matrix from two images
+    :param img_path1: path to img1 file
+    :param img_path2: path to img2 file
+    :param show: boolean, True = display image
+    :return: fundamental matrix
+    """
     # load images
     img1 = cv2.imread(img_path1)
     img2 = cv2.imread(img_path2)
@@ -74,11 +108,16 @@ def calc_fundamental_matrix(img_path1: str, img_path2: str, show=False):
     img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
 
     # find matches
-    matches = find_pts_correspondences(img1, img2, show)
-    matches = np.asarray(matches).reshape((2, 2, 8))
+    kp1, kp2, matches = find_pts_correspondences(img1, img2, show)
 
-    # find matrix
-    F = find_fundamental_matrix(matches)
+    # find matrix, inlier matching points
+    F, kp1, kp2, matches = find_fundamental_matrix(kp1, kp2, matches)
+    if show:
+        # draw match lines
+        res = cv2.drawMatches(img1, kp1, img2, kp2, matches, None, flags=2)
+        plt.imshow(res)
+        plt.title("filtered inliers found")
+        plt.show()
     print(F)
     return F
 
