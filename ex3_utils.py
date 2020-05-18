@@ -49,41 +49,6 @@ def get_norm_matrix(pts: np.ndarray):
     return pts, T
 
 
-def find_matrix_by_pt_matches(X1: np.ndarray, X2: np.ndarray, T1: np.ndarray, T2: np.ndarray, zero_eigen=True):
-    """
-    uses svd decomposition to estimate 3X3 matrix from pt correspondence
-    :param X1: pt set 1 of shape (3 , num_pts) or (num_pts, 3) // in homogeneous coordinates
-    :param X2: pt set 2 of shape (3 , num_pts) or (num_pts, 3) // in homogeneous coordinates
-    :param T1:
-    :param T2:
-    :param zero_eigen: boolean flag -> enforce last eigenvalue = 0
-    :param show: boolean flag -> plot matching points
-    :return: F (3x3 Matrix) where for all matching x, x' in pts1, pts2 : x'.T @ F @ x = 0
-             inlier points list (2, num_pts, 3)
-    """
-    assert X1.shape[0] == X2.shape[0] == 3 or X1.shape[1] == X2.shape[1] == 3, "illegal input"
-
-    # enforce shape (num_pts, 3)
-    if X1.shape[0] == 3:
-        X1, X2 = X1.T, X2.T
-
-    # gen F matrix
-    F = build_matrix_from_pts(X1, X2, T1, T2)
-
-    # remove outliers -- currently does that by match score.
-    F = np.matmul(T2.T, np.matmul(F, T1))
-    X1, X2 = discard_outliers(F, X1, X2)
-
-    # re-gen F matrix
-    F = build_matrix_from_pts(X1, X2)
-
-    if zero_eigen:
-        U, S, VT = np.linalg.svd(F)
-        S[-1] = 0
-        F = np.matmul(U, np.matmul(np.diag(S), VT))
-    return F, [X1, X2]
-
-
 def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=np.eye(3)):
     """
     uses svd decomposition to estimate 3X3 matrix from pt correspondence
