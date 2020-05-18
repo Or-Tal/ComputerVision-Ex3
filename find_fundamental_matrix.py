@@ -58,9 +58,9 @@ def find_fundamental_matrix(kp1, kp2, matches, show=False, filter_func=None):
     X1, T1 = get_norm_matrix(pt_correspondence[0])
     X2, T2 = get_norm_matrix(pt_correspondence[1])
 
+    # find fundamental matrix
     if filter_func is not None:
-        # find matrix
-        # comment out in case of different implementation of outlier filtering
+
         # -- enforce shape (num_pts, 3)
         if X1.shape[0] == 3:
             X1, X2 = X1.T, X2.T
@@ -77,14 +77,18 @@ def find_fundamental_matrix(kp1, kp2, matches, show=False, filter_func=None):
         # -- remove outliers
         kp1, kp2, matches = discard_outliers(kp1, kp2, matches)
 
-    # -- re-gen pts
+    # -- gen pts
     pt_correspondence = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
-    X1, X2 = pt_correspondence[0], pt_correspondence[1]
-    # ---- enforce shape (num_pts, 3)
+
+    # -- calc normalize matrix, get homogeneous coordinates
+    X1, T1 = get_norm_matrix(pt_correspondence[0])
+    X2, T2 = get_norm_matrix(pt_correspondence[1])
+
+    # -- enforce shape (num_pts, 3)
     if X1.shape[0] == 3:
         X1, X2 = X1.T, X2.T
 
-    # -- re-gen F matrix
+    # --gen F matrix
     F = build_matrix_from_pts(X1, X2, T1, T2)
 
     # de-normalize
@@ -118,7 +122,9 @@ def calc_fundamental_matrix(img_path1: str, img_path2: str, show=False):
         plt.imshow(res)
         plt.title("filtered inliers found")
         plt.show()
-    print(F)
+
+        # print the fundamental matrix, centroid,
+        print("fundamental matrix:\n{}".format(F))
     return F
 
 

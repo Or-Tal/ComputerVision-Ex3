@@ -49,7 +49,7 @@ def get_norm_matrix(pts: np.ndarray):
     return pts, T
 
 
-def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=np.eye(3)):
+def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=np.eye(3), zero_eigen=True):
     """
     uses svd decomposition to estimate 3X3 matrix from pt correspondence
     :param pts1: pt set 1 of shape (num_pts, 3) // in homogeneous coordinates
@@ -82,6 +82,12 @@ def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=n
 
     # setup vector in matrix
     F = f.reshape((3, 3))
+
+    # enforce det(F) = 0
+    if zero_eigen:
+        U, s, VT = np.linalg.svd(F)
+        s[-1] = 0
+        F = np.matmul(U, np.matmul(np.diag(s), VT))
 
     return F
 
