@@ -145,7 +145,6 @@ def draw_epilines(im1: np.ndarray, im2: np.ndarray, F: np.ndarray, kp1, kp2, mat
     lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F).reshape(-1, 3)
 
     # draw lines on images
-
     img1 = draw_lines(im1, lines1, pts1)
     img2 = draw_lines(im2, lines2, pts2)
 

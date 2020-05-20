@@ -46,7 +46,7 @@ def get_norm_matrix(pts: np.ndarray):
                     [0,                 np.sqrt(2) / RMS,   - centroid[1] * np.sqrt(2) / RMS],
                     [0,                 0,                  1                               ]]).reshape(3, 3)
 
-    return pts, T
+    return T
 
 
 def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=np.eye(3), zero_eigen=True):
@@ -59,12 +59,12 @@ def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=n
     :param zero_eigen: boolean flag -> enforce last eigenvalue = 0
     :return: F (3x3 Matrix) where for all matching x, x' in pts1, pts2 : x'.T @ F @ x = 0
     """
-    assert pts1.shape[1] == pts2.shape[1] == 3
+    assert pts1.shape[0] == pts2.shape[0] == 3
     assert T1.shape == T2.shape == (3,3)
 
     # build constraint matrix
-    x1 = np.matmul(T1, pts1.T)
-    x2 = np.matmul(T2, pts2.T)
+    x1 = np.matmul(T1, pts1)
+    x2 = np.matmul(T2, pts2)
     A = np.asarray([x1[:, 0] * x2[:, 0],
                     x1[:, 1] * x2[:, 0],
                     x1[:, 0],
@@ -128,5 +128,5 @@ def draw_lines(img: np.ndarray, lines, pts):
         x0,y0 = map(int, [0, -r[2]/r[1] ])
         x1,y1 = map(int, [c, -(r[2]+r[0]*c)/r[1] ])
         cv2.line(img, (x0, y0), (x1, y1), color, 1)
-        img = cv2.circle(img,tuple(pt1),5,color,-1)
+        img = cv2.circle(img,(int(pt1[0]), int(pt1[1])),5,color,-1)
     return img
