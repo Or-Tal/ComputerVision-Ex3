@@ -17,11 +17,9 @@ def eight_point(kp1, kp2, matches):
 
     # find fundamental matrix corresponding to norm pts, this enforces pt normalization and det(F)=0
     F = build_matrix_from_pts(pts[0], pts[1], T1, T2)
-    # F = build_matrix_from_pts(pts[0], pts[1])
 
     # denormalize
     F = np.matmul(T2.T, np.matmul(F, T1))
-    # F = np.matmul(np.linalg.inv(T2).T, np.matmul(F, np.linalg.inv(T1)))
     return F, T1, T2
 
 
