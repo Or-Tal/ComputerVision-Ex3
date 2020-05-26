@@ -42,9 +42,16 @@ def get_norm_matrix(pts: np.ndarray):
     RMS = np.sqrt(np.sum(np.mean((pts - centroid.reshape(3, 1)) ** 2, axis=1)))
 
     # calculate matrix
-    T = np.asarray([[np.sqrt(2) / RMS,  0,                  - centroid[0] * np.sqrt(2) / RMS],
-                    [0,                 np.sqrt(2) / RMS,   - centroid[1] * np.sqrt(2) / RMS],
-                    [0,                 0,                  1                               ]]).reshape(3, 3)
+    A = np.asarray([[1,0, -centroid[0]],
+                    [0,1, -centroid[1]],
+                    [0,0,1]]).reshape(3, 3)
+    B = np.asarray([[np.sqrt(2)/RMS,0, 0],
+                    [0,np.sqrt(2)/RMS, 0],
+                    [0,0,1]]).reshape(3, 3)
+    T = np.matmul(A,B)
+    # T = np.asarray([[np.sqrt(2) / RMS, 0, - centroid[0] * np.sqrt(2) / RMS],
+    #                 [0, np.sqrt(2) / RMS, - centroid[1] * np.sqrt(2) / RMS],
+    #                 [0, 0, 1]]).reshape(3, 3)
 
     return T
 
@@ -60,25 +67,25 @@ def build_matrix_from_pts(pts1: np.ndarray, pts2: np.ndarray, T1=np.eye(3), T2=n
     :return: F (3x3 Matrix) where for all matching x, x' in pts1, pts2 : x'.T @ F @ x = 0
     """
     assert pts1.shape[0] == pts2.shape[0] == 3
-    assert T1.shape == T2.shape == (3,3)
+    assert T1.shape == T2.shape == (3, 3)
 
     # build constraint matrix
     x1 = np.matmul(T1, pts1)
     x2 = np.matmul(T2, pts2)
-    A = np.asarray([x1[:, 0] * x2[:, 0],
-                    x1[:, 1] * x2[:, 0],
-                    x1[:, 0],
-                    x1[:, 0] * x2[:, 1],
-                    x1[:, 1] * x2[:, 1],
-                    x2[:, 1],
-                    x1[:, 0],
-                    x1[:, 1],
-                    x1[:, 0] / x1[:, 0]]).T
-    A = A.reshape(-1, 9)
+
+    A = np.asarray([x2[0, :] * x1[0, :],
+                    x2[0, :] * x1[1, :],
+                    x2[0, :],
+                    x1[0, :] * x2[1, :],
+                    x1[1, :] * x2[1, :],
+                    x2[1, :],
+                    x1[0, :],
+                    x1[1, :],
+                    x1[0, :] / x1[0, :]]).T
 
     # SVD -> take smallest eigenvector
     U, S, VT = np.linalg.svd(A)
-    f = VT.T[:, -1]
+    f = VT[-1]
 
     # setup vector in matrix
     F = f.reshape((3, 3))
@@ -103,7 +110,7 @@ def discard_outliers(kp1, kp2, matches, tol=None):
     :return: inlier pts for which x'^T @ F @ x <= tol
     """
     if tol is None:
-        tol = 0.7 * np.mean([m.distance for m in matches])
+        tol = 0.5 * np.mean([m.distance for m in matches])
     idxs = np.where(np.array([m.distance for m in matches]).flatten() <= tol)[0]
     if idxs.shape[0] < 8:
         return kp1, kp2, matches[:8]
@@ -113,7 +120,7 @@ def discard_outliers(kp1, kp2, matches, tol=None):
     return kp1, kp2, rel_matches
 
 
-def draw_lines(img: np.ndarray, lines, pts):
+def draw_lines(img: np.ndarray, pts, lines):
     """
     :param img: image on which we draw the matching epilines
     :param lines: corresponding epilines
@@ -121,12 +128,18 @@ def draw_lines(img: np.ndarray, lines, pts):
     :param pts2: pts of img 2
     :return: img1<- with points and epilines
     """
-    r,c = img.shape
+    h, w = img.shape
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    for r, pt1 in zip(lines, pts):
-        color = tuple(np.random.randint(0,255,3).tolist())
-        x0,y0 = map(int, [0, -r[2]/r[1] ])
-        x1,y1 = map(int, [c, -(r[2]+r[0]*c)/r[1] ])
+    for i, pt in enumerate(pts):
+        color = tuple(np.random.randint(0, 255, 3).tolist())
+        a,b,c = lines[i][0], lines[i][1], lines[i][2]
+        x0, y0 = map(int, [-c/a, 0])
+        x1, y1 = map(int, [-c/a +b*h/a, h])
         cv2.line(img, (x0, y0), (x1, y1), color, 1)
-        img = cv2.circle(img,(int(pt1[0]), int(pt1[1])),5,color,-1)
+        img = cv2.circle(img, (int(pt[0]), int(pt[1])), 5, color, -1)
     return img
+
+
+def get_epipole(F):
+    V = np.linalg.svd(F)[2][-1]
+    return V/V[-1]
