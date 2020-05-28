@@ -82,7 +82,7 @@ def draw_eplipolar_lines(im1: np.ndarray, im2: np.ndarray, F: np.ndarray,T1: np.
     pt1, pt2 = pts1.T, pts2.T
     print("test epipolar constraint")
     for i in range(len(pt1)):
-        print(np.matmul(pt1[i], np.matmul(F, pt2[i].T)))
+        print(np.matmul(pt2[i].T, np.matmul(F, pt1[i])))
 
 
     draw_epilines(im1, im2, F, T1, T2, kp1, kp2, matches)
@@ -123,19 +123,18 @@ def draw_epilines(im1: np.ndarray, im2: np.ndarray, F: np.ndarray, T1: np.ndarra
     pts = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
     pts1, pts2 = pts[0], pts[1]  # assuming these coords are homogeneous with z = 1
     pt1, pt2 = pts1.T, pts2.T
-    print("test epipolar constraint")
-    for i in range(len(pt1)):
-        print(np.matmul(pt1[i], np.matmul(F, pt2[i].T)))
 
     # find corresponding epilines
 
     # calc lines
-    # lines1 = np.matmul(np.matmul(np.linalg.inv(T1.T), F.T), pts2).T
-    # lines2 = np.matmul(np.matmul(np.linalg.inv(T2.T), F), pts1).T
+    lines1 = np.matmul(F.T, pts2).T
+    lines2 = np.matmul(F, pts1).T
 
     pts1, pts2 = (pts[0, :2, :].astype(int)).T, (pts[1, :2, :].astype(int)).T
-    lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F).reshape(-1, 3)
-    lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F).reshape(-1, 3)
+    # lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, np.matmul(F, np.linalg.inv(T1))).reshape(-1, 3)
+    # lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, np.matmul(np.linalg.inv(T2.T), F)).reshape(-1, 3)
+    # lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F).reshape(-1, 3)
+    # lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F).reshape(-1, 3)
 
     # draw lines on images
     img1 = draw_lines(im1, pts1, lines1)
@@ -174,4 +173,4 @@ def main_func(img_path1: str, img_path2: str, show=False):
 
 
 if __name__ == "__main__":
-    main_func("./external/img1.jpeg", "./external/img2.jpeg", show=True)
+    main_func("./external/im1.jpg", "./external/im2.jpg", show=True)

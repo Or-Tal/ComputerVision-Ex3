@@ -42,16 +42,19 @@ def get_norm_matrix(pts: np.ndarray):
     RMS = np.sqrt(np.sum(np.mean((pts - centroid.reshape(3, 1)) ** 2, axis=1)))
 
     # calculate matrix
-    A = np.asarray([[1,0, -centroid[0]],
-                    [0,1, -centroid[1]],
-                    [0,0,1]]).reshape(3, 3)
-    B = np.asarray([[np.sqrt(2)/RMS,0, 0],
-                    [0,np.sqrt(2)/RMS, 0],
-                    [0,0,1]]).reshape(3, 3)
-    T = np.matmul(A,B)
-    # T = np.asarray([[np.sqrt(2) / RMS, 0, - centroid[0] * np.sqrt(2) / RMS],
-    #                 [0, np.sqrt(2) / RMS, - centroid[1] * np.sqrt(2) / RMS],
+    # A = np.asarray([[1,0, -centroid[0]],
+    #                 [0,1, -centroid[1]],
+    #                 [0,0,1]]).reshape(3, 3)
+    # B = np.asarray([[np.sqrt(2)/RMS,0, 0],
+    #                 [0,np.sqrt(2)/RMS, 0],
+    #                 [0,0,1]]).reshape(3, 3)
+    # T = np.matmul(A,B)
+    # T = np.asarray([[np.sqrt(2) / RMS, 0, - centroid[0]],
+    #                 [0, np.sqrt(2) / RMS, - centroid[1]],
     #                 [0, 0, 1]]).reshape(3, 3)
+    T = np.asarray([[np.sqrt(2) / RMS, 0, - centroid[0] * np.sqrt(2) / RMS],
+                    [0, np.sqrt(2) / RMS, - centroid[1] * np.sqrt(2) / RMS],
+                    [0, 0, 1]]).reshape(3, 3)
 
     return T
 
@@ -110,7 +113,7 @@ def discard_outliers(kp1, kp2, matches, tol=None):
     :return: inlier pts for which x'^T @ F @ x <= tol
     """
     if tol is None:
-        tol = 0.5 * np.mean([m.distance for m in matches])
+        tol = 0.6 * np.mean([m.distance for m in matches])
     idxs = np.where(np.array([m.distance for m in matches]).flatten() <= tol)[0]
     if idxs.shape[0] < 8:
         return kp1, kp2, matches[:8]
@@ -134,7 +137,7 @@ def draw_lines(img: np.ndarray, pts, lines):
         color = tuple(np.random.randint(0, 255, 3).tolist())
         a,b,c = lines[i][0], lines[i][1], lines[i][2]
         x0, y0 = map(int, [-c/a, 0])
-        x1, y1 = map(int, [-c/a +b*h/a, h])
+        x1, y1 = map(int, [-c/a -b*h/a, h])
         cv2.line(img, (x0, y0), (x1, y1), color, 1)
         img = cv2.circle(img, (int(pt[0]), int(pt[1])), 5, color, -1)
     return img
