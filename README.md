@@ -12,5 +12,4 @@
 ## Part 2:
   1. 	Show how the linear triangulation method extends to n>2 images
   2.  Derive a method for triangulation in the case of pure translational motion of the cameras
-  
-  ###  Ans for Part 2 in ComputerVisionEx3.pdf
+  -- Ans for Part 2 in ComputerVisionEx3.pdf
