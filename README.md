@@ -7,7 +7,7 @@
 ## running instructions:
   ### Part1: run on example
   1. download all files to single folder 
-  2. run from cmd example: python ./find_fundamental_matrix.py
+  2. run from cmd example: python3 ./eight_point_alg.py
   
 ## Part 2:
   1. 	Show how the linear triangulation method extends to n>2 images
