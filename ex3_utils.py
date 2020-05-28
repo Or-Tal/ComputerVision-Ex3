@@ -42,16 +42,6 @@ def get_norm_matrix(pts: np.ndarray):
     RMS = np.sqrt(np.sum(np.mean((pts - centroid.reshape(3, 1)) ** 2, axis=1)))
 
     # calculate matrix
-    # A = np.asarray([[1,0, -centroid[0]],
-    #                 [0,1, -centroid[1]],
-    #                 [0,0,1]]).reshape(3, 3)
-    # B = np.asarray([[np.sqrt(2)/RMS,0, 0],
-    #                 [0,np.sqrt(2)/RMS, 0],
-    #                 [0,0,1]]).reshape(3, 3)
-    # T = np.matmul(A,B)
-    # T = np.asarray([[np.sqrt(2) / RMS, 0, - centroid[0]],
-    #                 [0, np.sqrt(2) / RMS, - centroid[1]],
-    #                 [0, 0, 1]]).reshape(3, 3)
     T = np.asarray([[np.sqrt(2) / RMS, 0, - centroid[0] * np.sqrt(2) / RMS],
                     [0, np.sqrt(2) / RMS, - centroid[1] * np.sqrt(2) / RMS],
                     [0, 0, 1]]).reshape(3, 3)

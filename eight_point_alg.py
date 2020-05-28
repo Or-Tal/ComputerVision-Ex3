@@ -1,3 +1,6 @@
+# Computer Vision Ex3
+# Author: Or Tal
+# -------------------
 from ex3_utils import *
 
 
@@ -74,79 +77,39 @@ def draw_eplipolar_lines(im1: np.ndarray, im2: np.ndarray, F: np.ndarray,T1: np.
 
     # get pt correspondence coordinates (homogeneous)
     pts = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
-    x1, x2 = pts[0], pts[1]
-
-
-    pts = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
     pts1, pts2 = pts[0], pts[1]  # assuming these coords are homogeneous with z = 1
     pt1, pt2 = pts1.T, pts2.T
+
+    # testing epipolar constraint
     print("test epipolar constraint")
     for i in range(len(pt1)):
         print(np.matmul(pt2[i].T, np.matmul(F, pt1[i])))
 
-
+    # draw epipolar lines
     draw_epilines(im1, im2, F, T1, T2, kp1, kp2, matches)
-
-    # # draw on imgs
-    # draw_epilines_on_im(im2, np.matmul(np.linalg.inv(T2).T, F), x1, x2)
-    # draw_epilines_on_im(im1, np.matmul(np.linalg.inv(T1).T, F.T), x2, x1)
-
-
-def draw_epilines_on_im(img: np.ndarray, F: np.ndarray, x1:np.ndarray, x2: np.ndarray):
-    """plots epipolarlines and found keypoints on a single image"""
-    # assume array of col vectors
-    assert x1.shape[0] == x2.shape[0] == 3
-
-    # calculate all lines
-    lines = np.matmul(F, x1)
-
-    # plot
-    plt.imshow(img, cmap='gray')
-    h, w = img.shape
-
-    # -- draw lines
-    x_range = np.linspace(0, w, 200)
-    for line in lines:
-        y_range = np.array([(line[2] + line[0] * x)/(-line[1]) for x in x_range])
-        idxs = np.where((y_range >= 0) & (y_range < h))
-        plt.plot(x_range[idxs], y_range[idxs])
-
-    # -- draw keypoints
-    x_pts = x2[0,:].flatten()
-    y_pts = x2[1,:].flatten()
-    plt.scatter(x_pts, y_pts, marker='.')
-    plt.show()
 
 
 def draw_epilines(im1: np.ndarray, im2: np.ndarray, F: np.ndarray, T1: np.ndarray, T2: np.ndarray, kp1, kp2, matches):
     # get pt coordinates
     pts = get_pt_correspondence_from_keypoint_matches(kp1, kp2, matches)
     pts1, pts2 = pts[0], pts[1]  # assuming these coords are homogeneous with z = 1
-    pt1, pt2 = pts1.T, pts2.T
-
-    # find corresponding epilines
 
     # calc lines
     lines1 = np.matmul(F.T, pts2).T
     lines2 = np.matmul(F, pts1).T
 
-    pts1, pts2 = (pts[0, :2, :].astype(int)).T, (pts[1, :2, :].astype(int)).T
-    # lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, np.matmul(F, np.linalg.inv(T1))).reshape(-1, 3)
-    # lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, np.matmul(np.linalg.inv(T2.T), F)).reshape(-1, 3)
-    # lines1 = cv2.computeCorrespondEpilines(pts2.reshape(-1, 1, 2), 2, F).reshape(-1, 3)
-    # lines2 = cv2.computeCorrespondEpilines(pts1.reshape(-1, 1, 2), 1, F).reshape(-1, 3)
 
     # draw lines on images
+    pts1, pts2 = (pts[0, :2, :].astype(int)).T, (pts[1, :2, :].astype(int)).T
     img1 = draw_lines(im1, pts1, lines1)
     img2 = draw_lines(im2, pts2, lines2)
 
     # plot
-    fig, axs = plt.subplots(1,2, figsize=(15, 10))
+    fig, axs = plt.subplots(1,2, figsize=(18, 10))
     plt.suptitle("our result: epipolar lines", fontsize=20)
     axs[0].imshow(img1)
     axs[1].imshow(img2)
     plt.show()
-
 
 
 def main_func(img_path1: str, img_path2: str, show=False):
@@ -169,8 +132,9 @@ def main_func(img_path1: str, img_path2: str, show=False):
     # 8 point algorithm
     F, T1, T2 = eight_point(kp1, kp2, matches)
 
+    # draw lines
     draw_eplipolar_lines(img1, img2, F, T1, T2, kp1, kp2, matches)
 
 
 if __name__ == "__main__":
-    main_func("./external/im1.jpg", "./external/im2.jpg", show=True)
+    main_func("./external/img1.jpeg", "./external/img2.jpeg", show=True)
