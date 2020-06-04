@@ -5,7 +5,7 @@
   2. Draw the epipolar lines on both images
   
 ## running instructions:
-  ### Part1: run on example
+  ### run on example
   1. download all files to single folder 
   2. run from cmd example: python3 ./eight_point_alg.py
   
